@@ -1,7 +1,7 @@
 # Site settings
 name: SPTO Qiang
 title: SPTO Qiang
-description: "大家好！我是郭志强，一名iOS Developer"
+description: "HELLO！我是郭志强，一名iOS Developer"
 #baseurl: "/flexible-jekyll" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 
@@ -17,8 +17,7 @@ email: guozhiqiang@loopeer.com
 public_key_url: "https://raw.pastebin.com/LINK-TO-PUBLIC-KEY"
 
 # Author Settings
-author: David Freeman # add your name
-author-img: david-freeman.jpg # add your photo
+author-img: avator.jpg # add your photo
 about-author: I am a web developer focusing on front-end development. Always hungry to keep learning. # add description
 twitter: # add your Twitter handle
 facebook: # add your Facebook handle
@@ -72,6 +71,6 @@ plugins_dir:
   - jemoji
 
 paginate: 8
-paginate_path: "/page/:num"
+paginate_path: "blogs/page:num"
 
 exclude: ["node_modules", "gulpfile.js", "package.json", "yarn.lock"]
