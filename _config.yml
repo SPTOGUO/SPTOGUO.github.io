@@ -1,7 +1,9 @@
 # Site settings
 name: SPTO Qiang
+title: SPTO Qiang
 description: "大家好！我是郭志强，一名iOS Developer"
-url: ""
+#baseurl: "/flexible-jekyll" # the subpath of your site, e.g. /blog
+url: "" # the base hostname & protocol for your site, e.g. http://example.com
 
 
 # Delete the lines you don't need
@@ -10,28 +12,66 @@ github_username: SPTOGUO
 facebook_username: your_facebook_username_goes_here
 twitter_username: your_twitter_username_goes_here
 weibo_username: weibo
-blog_url: "/blog"
+blog_url: "/blogs"
 email: guozhiqiang@loopeer.com
 public_key_url: "https://raw.pastebin.com/LINK-TO-PUBLIC-KEY"
+
+# Author Settings
+author: David Freeman # add your name
+author-img: david-freeman.jpg # add your photo
+about-author: I am a web developer focusing on front-end development. Always hungry to keep learning. # add description
+twitter: # add your Twitter handle
+facebook: # add your Facebook handle
+github: artemsheludko # add your Github handle
+linkedin: # add your Linkedin handle
 
 
 avatar: yes
 #avatar_img_path: "imgs/avatar.jpg""
 # You can link to your GitHub image. That way it will get updated
 # automatically whenever you change your GitHub profile picture
-avatar_img_path: "imgs/avator.jpg"
+avatar_img_path: "assets/img/avator.jpg"
 
 
 front_img: yes
-front_img_path: "imgs/background.jpg"
+front_img_path: "assets/img/background.jpg"
 #front_img_path: "https://external.url/image.jpg"
 
 
 favicon_img: yes
-favicon_img_path: "imgs/favicon.ico"
+favicon_img_path: "assets/img/favicon.ico"
 #favicon_img_path: "https://external.url/favicon.ico"
 
 
 # Build settings
 markdown: kramdown
 permalink: pretty
+
+
+
+
+
+#description: > # this means to ignore newlines until "baseurl:"
+#  Write an awesome description for your new site here. You can edit this
+#  line in _config.yml. It will appear in your document head meta (for
+#  Google search results) and in your feed.xml site description.
+#permalink: ':title/'
+
+site-twitter: #if your site has a twitter account, enter it here
+
+# Disqus
+discus-identifier: mr-brown # add your discus identifier
+
+# Tracker
+analytics: # Google Analytics
+
+# Build Settings
+plugins_dir:
+  - jekyll-sitemap
+  - jekyll-paginate
+  - jemoji
+
+paginate: 8
+paginate_path: "/page/:num"
+
+exclude: ["node_modules", "gulpfile.js", "package.json", "yarn.lock"]
