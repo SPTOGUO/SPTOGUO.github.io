@@ -1,7 +1,7 @@
 # Site settings
 name: SPTO Qiang
 title: SPTO Qiang
-description: "HELLO！我是郭志强，一名iOS Developer"
+description: "Hello！我是郭志强，一名iOS开发者，现在在北京工作，有很强的求知欲，正在学习前端和小程序"
 #baseurl: "/flexible-jekyll" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 
@@ -10,19 +10,14 @@ url: "" # the base hostname & protocol for your site, e.g. http://example.com
 # about 5 elements are recomended
 github_username: SPTOGUO
 facebook_username: your_facebook_username_goes_here
-twitter_username: your_twitter_username_goes_here
-weibo_username: weibo
+twitter_username: SuperTOQ
+weibo_username: 1854747423
 blog_url: "/blogs"
 email: guozhiqiang@loopeer.com
-public_key_url: "https://raw.pastebin.com/LINK-TO-PUBLIC-KEY"
+#public_key_url: "https://raw.pastebin.com/LINK-TO-PUBLIC-KEY"
 
 # Author Settings
 author-img: avator.jpg # add your photo
-about-author: I am a web developer focusing on front-end development. Always hungry to keep learning. # add description
-twitter: # add your Twitter handle
-facebook: # add your Facebook handle
-github: artemsheludko # add your Github handle
-linkedin: # add your Linkedin handle
 
 
 avatar: yes
