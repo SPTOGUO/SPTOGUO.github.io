@@ -1,18 +1,15 @@
-# front cover jekyll theme
+# 我的Blog源码
 
-## Why choose this jekyll theme for your front page?
-* You don't have to modify any HTML, everything can be modified in config.yml.
-* Very lightweight. No Javascript, No Bootstrap etc..
-* MIT licensed.
+## Blog地址 
+我的<a href="https://sptoguo.github.io/">博客地址</a>
 
 
-## See it in action
-<a href="https://dashingcode.github.io/front-cover/">Live demo page</a>
+## 说明
+该blog是用jekyll和GitHub Pages完成的，用了Flexible-Jekyll和front-cover的Theme，感谢Artem Sheludko和DashingCode，我才能完成我的blog。
 
-## Credits
-The background image that was used as an example comes from Tom Hall.
-You can find it on <a href="https://flic.kr/p/pqEPBb">Flickr</a>.
-It's licensed under Creative-Commons.
+在这个<a href="http://jekyllthemes.org">网站</a>，你能发现更多的Theme
 
-This theme makes use of the amazing <a href="http://fontawesome.io/">Font Awesome</a> icons.
+
+## License
+GNU General Public License Version 3
 
