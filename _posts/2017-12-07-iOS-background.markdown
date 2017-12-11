@@ -15,26 +15,26 @@ img:
 ## app 需要在后台执行有限长度的任务
 当 app 从 background 进入到 suspended ，需要执行耗时不长的任务，比如保存数据之类的，可以调用 UIApplication 对象的 [beginBackgroundTaskWithName:expirationHandler:](https://developer.apple.com/documentation/uikit/uiapplication/1623051-beginbackgroundtaskwithname) 或者 [beginBackgroundTaskWithExpirationHandler:](https://developer.apple.com/documentation/uikit/uiapplication/1623031-beginbackgroundtask) 方法，请求额外的时间执行任务，下面看 demo：
 
-``` swift
+```swift
 //this is Swift
-func applicationDidEnterBackground(_ application: UIApplication) 
+func applicationDidEnterBackground(_ application: UIApplication)
 {
-     bgTask = application.beginBackgroundTask(withName: "myTask") {                        
-          print("超过执行最长时间...")
-          application.endBackgroundTask(self.bgTask!)
-          self.bgTask = UIBackgroundTaskInvalid
-      }
-      DispatchQueue.global().async {
-          print("后台执行任务.....")
-          DispatchQueue.global().asyncAfter(deadline: .now() + 12) {
-              print("任务完成")
-              application.endBackgroundTask(self.bgTask!)
-              self.bgTask = UIBackgroundTaskInvalid
-          }
-     }
+    bgTask = application.beginBackgroundTask(withName: "myTask") {
+        print("超过执行最长时间...")
+        application.endBackgroundTask(self.bgTask!)
+        self.bgTask = UIBackgroundTaskInvalid
+    }
+    DispatchQueue.global().async {
+        print("后台执行任务.....")
+        DispatchQueue.global().asyncAfter(deadline: .now() + 12) {
+            print("任务完成")
+            application.endBackgroundTask(self.bgTask!)
+            self.bgTask = UIBackgroundTaskInvalid
+        }
+    }
 }
 ```
-```
+```swift
 //执行结果
 后台执行任务.....
 任务完成
@@ -59,12 +59,12 @@ var session = URLSession(configuration: configuration, delegate: self, delegateQ
 - 如果任务在 foreground 或者 background 完成，会正常的调起相应的 delegate ；
 - 如果系统在终止 app 前，还没有下载完成，系统会自动在后台继续完成任务，当完成后系统会重新打开 app（假设不是用户强制退出 app ），调用 app delegate’s 的 [application:handleEventsForBackgroundURLSession:completionHandler:](https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1622941-application) 方法，app 需要在方法里实现，用提供的 identifier 创建新的 URLSessionConfiguration 和 NSURLSession 对象，系统将新的 session 对象重新连接到先前的任务，并调用相应的 delegate 
 
-``` swift
+```swift
 func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
-     let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
-     configuration.sessionSendsLaunchEvents = true
-     configuration.isDiscretionary = true
-     var session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+    let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
+    configuration.sessionSendsLaunchEvents = true
+    configuration.isDiscretionary = true
+    var session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
 }
 ```
 
@@ -84,7 +84,9 @@ func application(_ application: UIApplication, handleEventsForBackgroundURLSessi
 #### 声明app支持的背景任务
 
 在TARGETS选中项目，点击 Capabilities 页，开启 Background Modes，选择相应的 model ，如下图选择了 Audio and AirPlay 
+
 ![选择相应的类型服务](http://upload-images.jianshu.io/upload_images/7951141-597ac17a9073b5b7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
 因为篇幅有限，这里只给大家举一个例子，有兴趣的同学可自行研究
 
 #### 追踪用户的位置信息
@@ -98,33 +100,33 @@ locationManager.activityType = .fitness
 if #available(iOS 9.0, *) {
     //允许app在后台执行位置更新
     locationManager.allowsBackgroundLocationUpdates = true
- }
- locationManager.distanceFilter = 10.0
- locationManager.startUpdatingLocation()
- locationManager.delegate = self
+}
+locationManager.distanceFilter = 10.0
+locationManager.startUpdatingLocation()
+locationManager.delegate = self
 ```
 
 只有在 allowsBackgroundLocationUpdates 为 true 和 Capabilities 页开启 Background Modes，选择了 Location updates ，才能在后台运行，并在 delegate 执行相应的逻辑
 
 ```swift
 func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    
+    for location in locations {
+        let howRecent = location.timestamp.timeIntervalSinceNow
         
-        for location in locations {
-            let howRecent = location.timestamp.timeIntervalSinceNow
-            
-            //筛选loaction（10秒前的坐标位置不要）
-            if abs(howRecent) >= 10 {
-                continue;
+        //筛选loaction（10秒前的坐标位置不要）
+        if abs(howRecent) >= 10 {
+            continue;
+        }
+        
+        //筛选loaction（精度不达标的位置信息不要）
+        if location.horizontalAccuracy < kCLLocationAccuracyNearestTenMeters * 3 && location.horizontalAccuracy > 0   {
+            if !self.locations.isEmpty{
+                //计算跑步的距离
+                distance += location.distance(from: self.locations.last!)
             }
-            
-            //筛选loaction（精度不达标的位置信息不要）
-            if location.horizontalAccuracy < kCLLocationAccuracyNearestTenMeters * 3 && location.horizontalAccuracy > 0   {
-                if !self.locations.isEmpty{
-                    //计算跑步的距离
-                    distance += location.distance(from: self.locations.last!)
-                }
-                self.locations.append(location)
-            } 
+            self.locations.append(location)
         }
     }
+}
 ```
