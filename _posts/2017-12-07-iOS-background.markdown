@@ -49,7 +49,8 @@ func applicationDidEnterBackground(_ application: UIApplication)
 
 ```swift
 //配置session支持后台下载
-let configuration = URLSessionConfiguration.background(withIdentifier: "background downloading")
+let configuration =
+URLSessionConfiguration.background(withIdentifier: "background downloading")
 configuration.sessionSendsLaunchEvents = true
 configuration.isDiscretionary = true
 var session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
@@ -60,7 +61,9 @@ var session = URLSession(configuration: configuration, delegate: self, delegateQ
 - 如果系统在终止 app 前，还没有下载完成，系统会自动在后台继续完成任务，当完成后系统会重新打开 app（假设不是用户强制退出 app ），调用 app delegate’s 的 [application:handleEventsForBackgroundURLSession:completionHandler:](https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1622941-application) 方法，app 需要在方法里实现，用提供的 identifier 创建新的 URLSessionConfiguration 和 NSURLSession 对象，系统将新的 session 对象重新连接到先前的任务，并调用相应的 delegate 
 
 ```swift
-func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
+func application(_ application: UIApplication, 
+		handleEventsForBackgroundURLSession identifier: String,
+		completionHandler: @escaping () -> Void) {
     let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
     configuration.sessionSendsLaunchEvents = true
     configuration.isDiscretionary = true
@@ -112,7 +115,8 @@ locationManager.delegate = self
 func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
     
     for location in locations {
-        let howRecent = location.timestamp.timeIntervalSinceNow
+        let howRecent =
+        location.timestamp.timeIntervalSinceNow
         
         //筛选loaction（10秒前的坐标位置不要）
         if abs(howRecent) >= 10 {
@@ -120,10 +124,12 @@ func locationManager(_ manager: CLLocationManager, didUpdateLocations locations:
         }
         
         //筛选loaction（精度不达标的位置信息不要）
-        if location.horizontalAccuracy < kCLLocationAccuracyNearestTenMeters * 3 && location.horizontalAccuracy > 0   {
+        if location.horizontalAccuracy < kCLLocationAccuracyNearestTenMeters * 3 && 
+        location.horizontalAccuracy > 0   {
             if !self.locations.isEmpty{
                 //计算跑步的距离
-                distance += location.distance(from: self.locations.last!)
+                distance += location.distance(from:
+                self.locations.last!)
             }
             self.locations.append(location)
         }
