@@ -16,7 +16,7 @@ img:
 
 ## 替换类中的方法和动态改变方法实现
 
-要想替换类中已有方法等实现，首先我们要理解 Objective-C 的消息转发机制。
+要想动态添加方法实现和替换类中已有方法等实现，首先我们要理解 Objective-C 的消息转发机制。
 
 #### 消息转发机制
 
@@ -78,6 +78,27 @@ IMP _Nonnull imp, const char * _Nullable types)
 到此，整个消息转发机制就完成了，如果消息还没有处理，则应用程序就会崩溃。消息转发流程图如下：
 
 ![消息转发流程图](http://p0iv8hbe9.bkt.clouddn.com/messageForwarding.jpeg)
+
+#### 黑魔法：method swizzling
+
+我们知道了消息的转发机制，我们可以在类中没有实现某方法时，动态的添加实现，或者是把该消息转移到别的实例上。但这些都是在类中没有实现要执行的方法，那我们是否可以在运行时，动态的改变已有方法的实现，答案是肯定的，这个关键就是 method swizzling。
+
+这样，我们就可以不需要源代码，也不需要继承父类去覆写方法，就能改变这个方法实现的功能，而且新功能将在本类的所有实例中生效，而不是仅限于覆写了相关方法等那些子类实例。
+
+首先，介绍一下 method swizzling 相关的方法
+
+```swift
+void method_exchangeImplementations(Method _Nonnull m1, Method _Nonnull m2)
+
+Method _Nullable class_getInstanceMethod(Class _Nullable cls, SEL _Nonnull name)
+```
+
+每个类都维护着一个方法表，这个表里会把选择子的名称映射到相关的方法实现上，而 method_exchangeImplementations 是把两个方法等映射关系交换，如下图：
+
+![](http://p0iv8hbe9.bkt.clouddn.com/WechatIMG30.jpeg)
+
+
+
 
 ## 关联对象（类添加属性）
 
