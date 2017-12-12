@@ -97,7 +97,58 @@ Method _Nullable class_getInstanceMethod(Class _Nullable cls, SEL _Nonnull name)
 
 ![](http://p0iv8hbe9.bkt.clouddn.com/WechatIMG30.jpeg)
 
+我们来看demo:
 
+```swift
+@interface UIControl (CustomControl)
+
+- (void)swizzledAction:(SEL)action to:(id)target forEvent:(UIEvent *)event;
+
+@end
+
+@implementation UIControl (CustomControl)
+
+- (void)swizzledAction:(SEL)action to:(id)target forEvent:(UIEvent *)event {
+    NSLog(@"swizzledAction  target = %@", target);
+    [self swizzledAction:action to:target forEvent:event];
+}
+
+@end
+```
+我们为UIControl扩展一个方法swizzledAction，内部是打印信息和调自己，大家可能很疑惑，这不就成了无限递归了，不要着急接着往下看。
+
+```swift
+@implementation ViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    Method originalMethod = class_getInstanceMethod([UIControl class], @selector(sendAction:to:forEvent:));
+    Method swizzledMethod = class_getInstanceMethod([UIControl class], @selector(swizzledAction:to:forEvent:));
+    method_exchangeImplementations(originalMethod, swizzledMethod);
+    
+    UIButton *control = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, 300, 300)];
+    control.backgroundColor = [UIColor redColor];
+    [control addTarget:self action:@selector(tapControl:) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:control];
+}
+
+- (void)tapControl:(id)sender {
+    NSLog(@"tapImageControl");
+}
+
+@end
+
+```
+在这里，我们用到了上面讲的两个方法，把 UIControl 的sendAction:to:forEvent: 和 swizzledAction:to:forEvent: 方法交换，然后初始化了 UIButton ，点击这个 button ，会打印信息。
+
+```swift
+swizzledAction  target = <ViewController: 0x7fcbe24271e0>
+tapImageControl
+```
+当我们点击 Button 时，button 会调用 sendAction:to:forEvent: ，但我们在这里把选择子的映射关系交换了，现在 sendAction:to:forEvent: 指向的是 swizzledAction:to:forEvent: 的实现，而 swizzledAction:to:forEvent: 指向了 sendAction:to:forEvent: 实现，所以 button 实际调用的是swizzledAction 的实现，现在再看 swizzledAction 的实现，它在内部其实调用的不是自己而是 sendAction:to:forEvent: 的实现，就不会造成递归，只是在 sendAction:to:forEvent: 实现上加了一个打印信息。
+
+虽然这个domo没有什么意义，但它实现了自定义方法和系统定义的方法交换，
 
 
 ## 关联对象（类添加属性）
