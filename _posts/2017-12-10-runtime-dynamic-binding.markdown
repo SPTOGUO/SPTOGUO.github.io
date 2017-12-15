@@ -18,7 +18,7 @@ img:
 
 要想动态添加方法实现和替换类中已有方法等实现，首先我们要理解 Objective-C 的消息转发机制。
 
-#### 消息转发机制
+### 消息转发机制
 
 在我们给实例发送消息时，我们必须在类中实现相应的方法。但是，在编译期向类发送了其无法解读的消息并不报错，因为在编译时还无法知道类中有没有该方法的实现，而是推迟到运行时，在运行时接受到无法解读的消息，会启动消息转发机制，只有在消息转发机制后，还没有找到相应的实现，应用程序才会崩溃。
 
@@ -27,7 +27,7 @@ img:
 1. 动态方法解析
 2. 完整的消息转发机制
 
-###### 动态方法解析
+#### 动态方法解析
 
 转发机制触发，首先会进行动态方法解析，看接收者所属的类，是否能动态添加方法，处理这个未知的消息。
 
@@ -49,7 +49,7 @@ IMP _Nonnull imp, const char * _Nullable types)
 
 到这一步，动态方法解析已经完成，如果还没有处理未知的消息，则需要进行第二步，完整的消息转发机制。
 
-###### 完整的消息转发机制
+#### 完整的消息转发机制
 
 完整的消息转发机制，是在第一步动态方法解析未处理的情况下，才会触发，这一步又细分为两小步
 
@@ -79,7 +79,9 @@ IMP _Nonnull imp, const char * _Nullable types)
 
 ![消息转发流程图](http://p0iv8hbe9.bkt.clouddn.com/messageForwarding.jpeg)
 
-#### 黑魔法：method swizzling
+在消息转发机制的这三个方法里，我们能动态的添加方法或转给其他接收者处理，从而完成一些很强大的功能。
+
+### 黑魔法：method swizzling
 
 我们知道了消息的转发机制，我们可以在类中没有实现某方法时，动态的添加实现，或者是把该消息转移到别的实例上。但这些都是在类中没有实现要执行的方法，那我们是否可以在运行时，动态的改变已有方法的实现，答案是肯定的，这个关键就是 method swizzling。
 
@@ -97,7 +99,7 @@ Method _Nullable class_getInstanceMethod(Class _Nullable cls, SEL _Nonnull name)
 
 ![](http://p0iv8hbe9.bkt.clouddn.com/WechatIMG30.jpeg)
 
-我们来看demo:
+#### 我们来看demo:
 
 ```swift
 @interface UIControl (CustomControl)
@@ -153,7 +155,9 @@ tapImageControl
 
 ## 关联对象（类添加属性）
 
-有时我们想为某个类添加属性，但是该类的实例是由某种机制所创建，而我们无法让这种机制创建自己所写的子类实例，这种情况，我们就要用到关联对象。关联对象有三个方法：
+有时我们想为某个类添加成员变量，但是该类的实例是由某种机制所创建，而我们无法让这种机制创建自己所写的子类实例，这种情况，我们就要用到关联对象。关联对象和变量不同的是,关联对象是在类创建实例后添加进去的。所以不能通过Runtime的获取成员变量的方法获取相关信息。 
+
+关联对象有三个方法：
 
 ```swift
 objc_setAssociatedObject(id _Nonnull object, const void
@@ -178,6 +182,49 @@ objc_removeAssociatedObjects(id _Nonnull object)
 | OBJC_ASSOCIATION_RETAIN            | strong,atomic | 
 | OBJC_ASSOCIATION_COPY              | copy, atomic  | 
 
+### 例子
+
+我原来在Stack Overflow看过一个答案，就是用的关联类型，增大 UIButton 的点击范围。
+
+```swift
+static const NSString *KEY_HIT_TEST_EDGE_INSETS = @"HitTestEdgeInsets";
+
+@implementation UIButton (LPKit)
+
+- (void)setHitEdgeInsets:(UIEdgeInsets)hitEdgeInsets {
+    NSValue *value = [NSValue value:&hitEdgeInsets withObjCType:@encode(UIEdgeInsets)];
+    objc_setAssociatedObject(self, &KEY_HIT_TEST_EDGE_INSETS, value, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (UIEdgeInsets)hitEdgeInsets {
+    NSValue *value = objc_getAssociatedObject(self, &KEY_HIT_TEST_EDGE_INSETS);
+    if(value) {
+        UIEdgeInsets edgeInsets; [value getValue:&edgeInsets]; return edgeInsets;
+    }else {
+        return UIEdgeInsetsZero;
+    }
+}
+
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
+    if(UIEdgeInsetsEqualToEdgeInsets(self.hitEdgeInsets, UIEdgeInsetsZero) || !self.enabled || self.hidden) {
+        return [super pointInside:point withEvent:event];
+    }
+    
+    CGRect relativeFrame = self.bounds;
+    CGRect hitFrame = UIEdgeInsetsInsetRect(relativeFrame, self.hitEdgeInsets);
+    
+    return CGRectContainsPoint(hitFrame, point);
+}
+@end
+```
+```swift
+[button setHitTestEdgeInsets:UIEdgeInsetsMake(-10, -10, -10, -10)];
+```
+我们都知道，在 Objective-C 中可以通过 Category 给一个现有的类添加属性，但是却不能添加实例变量，所以我们需要用关联对象存储数据，调用 setHitTestEdgeInsets 会在运行时，把 hitEdgeInsets 值存储起来，在你点击 button 时，pointInside 会拿到 hitEdgeInsets 的值，扩大或缩小自己的点击范围。小伙伴可以试试。
+
+## 总结
+
+上面讲了消息转发机制、method swizzling和关联类型，这些方法功能强大，但是增加了代码的复杂性，提高的代码的可读性，使用姿势不正确，经常会引起严重的或难以发现的bug，这对以后的维护很不利，所以，再有别的解决办法时，尽量不要用动态绑定的方法。
 
 
 
