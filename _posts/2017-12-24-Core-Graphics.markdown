@@ -103,10 +103,14 @@ UIGraphicsEndImageContext()
 override func draw(_ rect: CGRect) {
         let context = UIGraphicsGetCurrentContext()
         context?.move(to: CGPoint(x: 0, y: 0))
-        context?.addArc(tangent1End: CGPoint(x: rect.size.width, y: 0), tangent2End: CGPoint(x: rect.size.width , y: rect.size.height), radius: 60)
-        context?.addArc(tangent1End: CGPoint(x: rect.size.width , y: rect.size.height), tangent2End: CGPoint(x: 0 , y: rect.size.height), radius: 60)
-        context?.addArc(tangent1End: CGPoint(x: 0 , y: rect.size.height), tangent2End: CGPoint(x: 0, y: 0), radius: 60)
-        context?.addArc(tangent1End: CGPoint(x: 0, y: 0), tangent2End: CGPoint(x: rect.size.width, y: 0), radius: 60)
+        context?.addArc(tangent1End: CGPoint(x: rect.size.width, y: 0),
+         tangent2End: CGPoint(x: rect.size.width , y: rect.size.height), radius: 60)
+        context?.addArc(tangent1End: CGPoint(x: rect.size.width , y: rect.size.height),
+         tangent2End: CGPoint(x: 0 , y: rect.size.height), radius: 60)
+        context?.addArc(tangent1End: CGPoint(x: 0 , y: rect.size.height), 
+        tangent2End: CGPoint(x: 0, y: 0), radius: 60)
+        context?.addArc(tangent1End: CGPoint(x: 0, y: 0), 
+        tangent2End: CGPoint(x: rect.size.width, y: 0), radius: 60)
         context?.setFillColor(UIColor.red.cgColor)
         context?.setStrokeColor(UIColor.clear.cgColor)
         context?.drawPath(using: .fillStroke)
@@ -116,10 +120,11 @@ override func draw(_ rect: CGRect) {
 
 ```swift
 let cornersView = CornersView(frame: CGRect(x: 100, y: 100, width: 200, height: 200));
-        view.addSubview(cornersView)
+view.addSubview(cornersView)
 ```
 
 效果图如下：
+
 ![](http://p0iv8hbe9.bkt.clouddn.com/2FC2FCCF-7430-4B70-8C95-A3A41578D2A1.png)
 
 #### 在 UIImageView 上加圆角
@@ -168,6 +173,7 @@ view.addSubview(imageView)
 ```
 
 效果如下：
+
 ![](http://p0iv8hbe9.bkt.clouddn.com/E717D387-626D-49F1-874B-20DD17EB5DF4.png)
 
 ## 总结
