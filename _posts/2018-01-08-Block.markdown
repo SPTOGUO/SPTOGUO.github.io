@@ -78,7 +78,8 @@ static struct __main_block_desc_0 {
 int main()
 {
     int a = 100;
-    blk block2 = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, a));
+    blk block2 = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0,
+     &__main_block_desc_0_DATA, a));
     ((void (*)(__block_impl *))((__block_impl *)block2)->FuncPtr)((__block_impl *)block2);
     return 0;
 }
@@ -134,7 +135,8 @@ isa = &_NSConcreteGlobalBlock;    //这时就存储在程序的数据区
 - (id) getBlockArray {
     int val = 10;
     
-    return [[NSArray alloc] initWithObjects:^{NSLog(@"blk0: %d", val);},^{NSLog(@"blk0: %d", val);}, nil];
+    return [[NSArray alloc] initWithObjects:^{NSLog(@"blk0: %d", val);},
+    ^{NSLog(@"blk0: %d", val);}, nil];
 }
 
 id obj = [self getBlockArray];
@@ -150,7 +152,8 @@ block();
 - (id) getBlockArray {
     int val = 10;
     
-    return [[NSArray alloc] initWithObjects:[^{NSLog(@"blk0: %d", val);} copy],[^{NSLog(@"blk0: %d", val);} copy], nil];
+    return [[NSArray alloc] initWithObjects:[^{NSLog(@"blk0: %d", val);} copy],
+    [^{NSLog(@"blk0: %d", val);} copy], nil];
 }
 ```
 
@@ -252,7 +255,8 @@ struct __main_block_impl_0 {
   struct __block_impl impl;
   struct __main_block_desc_0* Desc;
   __Block_byref_a_0 *a; // by ref
-  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, __Block_byref_a_0 *_a, int flags=0) : a(_a->__forwarding) {
+  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, __Block_byref_a_0 *_a, 
+  int flags=0) : a(_a->__forwarding) {
     impl.isa = &_NSConcreteStackBlock;
     impl.Flags = flags;
     impl.FuncPtr = fp;
@@ -265,21 +269,28 @@ static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
   (a->__forwarding->a) = 5;
 }
 
-static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) {_Block_object_assign((void*)&dst->a, (void*)src->a, 8/*BLOCK_FIELD_IS_BYREF*/);}
+static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) 
+{_Block_object_assign((void*)&dst->a, (void*)src->a, 8/*BLOCK_FIELD_IS_BYREF*/);
+}
 
-static void __main_block_dispose_0(struct __main_block_impl_0*src) {_Block_object_dispose((void*)src->a, 8/*BLOCK_FIELD_IS_BYREF*/);}
+static void __main_block_dispose_0(struct __main_block_impl_0*src) 
+{_Block_object_dispose((void*)src->a, 8/*BLOCK_FIELD_IS_BYREF*/);
+}
 
 static struct __main_block_desc_0 {
   size_t reserved;
   size_t Block_size;
   void (*copy)(struct __main_block_impl_0*, struct __main_block_impl_0*);
   void (*dispose)(struct __main_block_impl_0*);
-} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0), __main_block_copy_0, __main_block_dispose_0};
+} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0), __main_block_copy_0,
+ __main_block_dispose_0};
 int main() {
 
-    __attribute__((__blocks__(byref))) __Block_byref_a_0 a = {(void*)0,(__Block_byref_a_0 *)&a, 0, sizeof(__Block_byref_a_0), 10};
+    __attribute__((__blocks__(byref))) __Block_byref_a_0 a = 
+    {(void*)0,(__Block_byref_a_0 *)&a, 0, sizeof(__Block_byref_a_0), 10};
 
-    blk blcok = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, (__Block_byref_a_0 *)&a, 570425344));
+    blk blcok = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, 
+    &__main_block_desc_0_DATA, (__Block_byref_a_0 *)&a, 570425344));
 
     (a.__forwarding->a) = 100;
 
@@ -300,7 +311,8 @@ __Block_byref_a_0 *__forwarding;
  int a;
 };
 
-__attribute__((__blocks__(byref))) __Block_byref_a_0 a = {(void*)0,(__Block_byref_a_0 *)&a, 0, sizeof(__Block_byref_a_0), 10};
+__attribute__((__blocks__(byref))) __Block_byref_a_0 a = 
+{(void*)0,(__Block_byref_a_0 *)&a, 0, sizeof(__Block_byref_a_0), 10};
 ```
 
 从初始化可以看出a就是原局部变量的值，__forwarding 是又指向自身的地址，有 __isa 所以也是一个对象。
@@ -319,8 +331,10 @@ __block存储区                   block从栈复制到堆
 
 ```swift
 __block int a = 10; //栈上
- blk blcok = [^{ ++a;} copy]; // block从栈复制到堆上，__block也复制到堆上，栈上的__block的__forwarding指向堆上的__block
- ++a; //访问的栈上的数据，但是它的__forwarding指向了堆上的__block，所以block和++a，访问的都是堆上的__block
+ blk blcok = [^{ ++a;} copy]; 
+ // block从栈复制到堆上，__block也复制到堆上，栈上的__block的__forwarding指向堆上的__block
+ ++a; 
+ //访问的栈上的数据，但是它的__forwarding指向了堆上的__block，所以block和++a，访问的都是堆上的__block
  blcok();
  NSLog(@"%d", a); //12
 ```
