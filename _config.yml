@@ -65,7 +65,7 @@ plugins_dir:
   - jekyll-paginate
   - jemoji
 
-paginate: 8
+paginate: 10
 paginate_path: "blogs/page:num"
 
 exclude: ["node_modules", "gulpfile.js", "package.json", "yarn.lock"]
