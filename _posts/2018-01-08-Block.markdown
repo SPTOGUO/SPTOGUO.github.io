@@ -1,0 +1,354 @@
+---
+layout: post
+title: Block 的本质
+date: 2018-01-08 00:00:00 +0300
+description: Block 的本质
+img:
+---
+
+最近回顾了《Objective-C 高级编程》，通过这篇博客总结一下 Block 
+## 目录
+- Block 的内部实现数据结构介绍
+- Block 的三种类型及其相关的内存管理方式
+- Block 如何通过 Capture 变量来达到访问函数外的变量
+- 在 ARC 的情况下
+
+## Block 的内部实现数据结构介绍
+![](http://p0iv8hbe9.bkt.clouddn.com/block-struct.jpg)
+
+从网上找到的 Block 的内部实现数据结构，我们可以在终端输入 clang -rewrite-objc 命令，把 oc 的语法转换成 c ，首先需要我们在 xcode 建一个 .c 文件，写下如下代码：
+
+```swift
+#include "block.h"
+#include <stdio.h>
+
+typedef void (^blk) (void);
+
+int main()
+{
+    int a = 100;
+    blk block2 = ^{
+        printf("%d\n", a);
+    };
+    block2();
+    return 0;
+}
+```
+然后用命令行，到当前目录：
+
+```swift
+gcc block.c
+clang -rewrite-objc block.c //block为.c文件到名字
+```
+
+然后在目录下会多出一个 .cpp 的文件，这个文件就是转化后的文件。
+来看转化后的结构：
+
+```swift
+typedef void (*blk) (void);
+
+struct __block_impl {
+  void *isa;
+  int Flags;
+  int Reserved;
+  void *FuncPtr;
+};
+
+struct __main_block_impl_0 {
+  struct __block_impl impl;
+  struct __main_block_desc_0* Desc;
+  int a;
+  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int _a, int flags=0) : a(_a) {
+    impl.isa = &_NSConcreteStackBlock;
+    impl.Flags = flags;
+    impl.FuncPtr = fp;
+    Desc = desc;
+  }
+};
+static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
+  int a = __cself->a; // bound by copy
+  printf("%d\n", a);
+}
+
+static struct __main_block_desc_0 {
+  size_t reserved;
+  size_t Block_size;
+} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0)};
+
+int main()
+{
+    int a = 100;
+    blk block2 = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, a));
+    ((void (*)(__block_impl *))((__block_impl *)block2)->FuncPtr)((__block_impl *)block2);
+    return 0;
+}
+```
+
+__main_block_impl_0 就是 block 的结构，由 __block_impl 、__main_block_desc_0、a 和一个初始化函数组成。
+
+__block_impl 是由 isa 、flags 和 FuncPtr 函数指针组成，isa 决定 block 存储在什么地方，有三种存储方式：
+
+```swift
+NSConcreteStackBlock                存储栈
+NSConcreteGlobalBlock               程序的数据区域
+NSConcreteMallocBlock               堆
+```
+
+__main_block_desc_0 是用于描述当前这个 block 的附加信息的，包括结构体的大小，需要 capture 和 dispose 的变量列表等。结构体大小需要保存是因为，每个 block 因为会 capture 一些变量，这些变量会加到 __main_block_impl_0 这个结构体中，使其体积变大；
+
+a 是捕获的 int 变量。
+
+## block 的三种类型及其相关的内存管理方式
+
+上面我们介绍了 isa 指向的三种存储方式 NSConcreteStackBlock 、 NSConcreteGlobalBlock 和 NSConcreteMallocBlock 三种方式。
+当在全局变量的地方使用 block 时，就存储在 NSConcreteGlobalBlock 中，如下：
+
+```swift
+void (^blk) (void) = ^{printf("Global block");};
+
+int main() {
+    
+}
+
+isa = &_NSConcreteGlobalBlock;    //这时就存储在程序的数据区
+```
+
+当下面的两种情况是存储在 NSConcreteGlobalBlock 中
+
+* block 为全局变量时
+* block 语法的表达式中没有截获的局部变量
+
+
+因为使用全局变量的地方不能使用局部变量、所以不存在对局部变量的截获,整个程序只有这一个实例。
+
+除了上面的两种情况，其他情况都是存储在栈上的，那么什么时候存储在堆上呢？
+
+* 调用 block 的 copy 方法，block 会从栈中复制到堆上
+* block 作为函数返回值返回时，block 会从栈中复制到堆上
+* 将 block 赋值给 __strong 修饰堆 id 类型，或者类的成员变量， block 会从栈中复制到堆上
+* 方法名中含有 usingBlock 的 Cocoa 框架方法或者 gcd 的 api ，block 会从栈中复制到堆上
+
+实际上在 arc 下，大多数情况下编译器会适当的判断，自动的帮我们加上复制到堆上的代码，但是向方法或函数的参数中传递 block 时，则编译器不能帮我们判断。如下：
+
+```swift
+- (id) getBlockArray {
+    int val = 10;
+    
+    return [[NSArray alloc] initWithObjects:^{NSLog(@"blk0: %d", val);},^{NSLog(@"blk0: %d", val);}, nil];
+}
+
+id obj = [self getBlockArray];
+blk block = [obj objectAtIndex:0];
+block();
+
+//报错 Thread 1: EXC_BAD_ACCESS (code=1, address=0x60401187af70)
+```
+
+把 getBlockArray 的 block 加上 copy ，就没问题了：
+
+```swift
+- (id) getBlockArray {
+    int val = 10;
+    
+    return [[NSArray alloc] initWithObjects:[^{NSLog(@"blk0: %d", val);} copy],[^{NSLog(@"blk0: %d", val);} copy], nil];
+}
+```
+
+block 调用 copy 的效果
+
+```swift
+NSConcreteStackBlock                栈                    复制效果：从栈复制到堆
+NSConcreteGlobalBlock               程序的数据区域          复制效果：什么也不做
+NSConcreteMallocBlock               堆                    复制效果：引用计数增加
+```
+
+## block 如何通过 capture 变量来达到访问函数外的变量
+
+```swift
+int a = 10;
+blk blcok = ^{ NSLog(@"%d", a);};
+a = 100;
+blcok(); // 10
+```
+
+我们都知道打印的结果为10，因为在 block 里，捕获了 a 的值，所以不会跟着 a 的值改变。
+
+```swift
+TestClass *class = [[TestClass alloc] init];
+class.name = @"guo";
+blk blcok = ^{ NSLog(@"%@", class.name);};
+class.name = @"zhi";
+blcok(); //zhi
+```
+
+结果为 zhi，因为在 block 里，捕获了 TestClass 实例等指针。
+但是,在 block 里，我们不能改变捕获的基础数据类型的值（int， double），对象可以。
+
+```swift
+int a = 10;
+blk blcok = ^{ a = 5;}; //报错 Variable is not assignable (missing __block type specifier)
+a = 100;
+blcok();
+```
+
+是因为在 block 的实现上，不能改写被截获自动变量的值，当编译器在编译过程过程中就报错了。
+一种解决办法就是：
+把a变为静态变量或静态全局变量或者全局变量
+
+```swift
+static int a = 10;   //换到全局变量或静态全局变量也可以
+blk blcok = ^{ a = 5;};
+a = 100;
+blcok();
+NSLog(@"%d", a); // 5
+```
+
+当用静态变量时，源代码如下：
+
+```swift
+struct __main_block_impl_0 {
+  struct __block_impl impl;
+  struct __main_block_desc_0* Desc;
+  int *a;
+  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int *_a, int flags=0) : a(_a) {
+    impl.isa = &_NSConcreteStackBlock;
+    impl.Flags = flags;
+    impl.FuncPtr = fp;
+    Desc = desc;
+  }
+};
+static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
+  int *a = __cself->a; // bound by copy
+ (*a) = 5;
+}
+```
+
+可以看到，捕获的值变成了 int *a ，指针类型，所以改变该值，也会影响静态变量的值。
+
+第二种方法就是，__block 修饰符
+
+```swift
+__block int a = 10;
+blk blcok = ^{ a = 5;};
+a = 100;
+blcok();
+NSLog(@"%d", a); //5
+```
+
+相应的源码
+
+```swift
+typedef void (*blk) (void);
+
+struct __Block_byref_a_0 {
+  void *__isa;
+__Block_byref_a_0 *__forwarding;
+ int __flags;
+ int __size;
+ int a;
+};
+
+struct __main_block_impl_0 {
+  struct __block_impl impl;
+  struct __main_block_desc_0* Desc;
+  __Block_byref_a_0 *a; // by ref
+  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, __Block_byref_a_0 *_a, int flags=0) : a(_a->__forwarding) {
+    impl.isa = &_NSConcreteStackBlock;
+    impl.Flags = flags;
+    impl.FuncPtr = fp;
+    Desc = desc;
+  }
+};
+
+static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
+  __Block_byref_a_0 *a = __cself->a; // bound by ref
+  (a->__forwarding->a) = 5;
+}
+
+static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) {_Block_object_assign((void*)&dst->a, (void*)src->a, 8/*BLOCK_FIELD_IS_BYREF*/);}
+
+static void __main_block_dispose_0(struct __main_block_impl_0*src) {_Block_object_dispose((void*)src->a, 8/*BLOCK_FIELD_IS_BYREF*/);}
+
+static struct __main_block_desc_0 {
+  size_t reserved;
+  size_t Block_size;
+  void (*copy)(struct __main_block_impl_0*, struct __main_block_impl_0*);
+  void (*dispose)(struct __main_block_impl_0*);
+} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0), __main_block_copy_0, __main_block_dispose_0};
+int main() {
+
+    __attribute__((__blocks__(byref))) __Block_byref_a_0 a = {(void*)0,(__Block_byref_a_0 *)&a, 0, sizeof(__Block_byref_a_0), 10};
+
+    blk blcok = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, (__Block_byref_a_0 *)&a, 570425344));
+
+    (a.__forwarding->a) = 100;
+
+    ((void (*)(__block_impl *))((__block_impl *)blcok)->FuncPtr)((__block_impl *)blcok);
+
+    printf("%d", (a.__forwarding->a));
+}
+```
+
+可以看出捕获的值，变成了 __Block_byref_a_0 结构体类型
+
+```swift
+struct __Block_byref_a_0 {
+  void *__isa;
+__Block_byref_a_0 *__forwarding;
+ int __flags;
+ int __size;
+ int a;
+};
+
+__attribute__((__blocks__(byref))) __Block_byref_a_0 a = {(void*)0,(__Block_byref_a_0 *)&a, 0, sizeof(__Block_byref_a_0), 10};
+```
+
+从初始化可以看出a就是原局部变量的值，__forwarding 是又指向自身的地址，有 __isa 所以也是一个对象。
+
+它的内存管理，和 block 是一样的，当 block 从栈复制到堆时， __block 也被复制到堆
+
+```swift
+__block存储区                   block从栈复制到堆
+栈                             从栈复制到堆被block持有
+堆                             被block持有
+```
+
+它的内存管理，是通过 __main_block_copy_0 和  __main_block_dispose_0 管理的，前者想当于 retain ，后者相当于 release ，__forwarding 的作用就是当 __block 被复制到堆上时，让栈上的 __block 的 __forwarding 指向堆上的地址，让两者访问同一个结构体。
+
+如下：
+
+```swift
+__block int a = 10; //栈上
+ blk blcok = [^{ ++a;} copy]; // block从栈复制到堆上，__block也复制到堆上，栈上的__block的__forwarding指向堆上的__block
+ ++a; //访问的栈上的数据，但是它的__forwarding指向了堆上的__block，所以block和++a，访问的都是堆上的__block
+ blcok();
+ NSLog(@"%d", a); //12
+```
+
+
+## 在arc的情况下
+
+在 ARC 开启的情况下，一般只会有 NSConcreteGlobalBlock 和 NSConcreteMallocBlock 类型的 block。
+原本的 NSConcreteStackBlock 的 block 会被 NSConcreteMallocBlock 类型的 block 替代，编译器会帮助我们加上copy。
+
+```swift
+__block int val = 10;
+    blk strongPointerBlock = ^{NSLog(@"val = %d", ++val);};
+    NSLog(@"strongPointerBlock: %@", strongPointerBlock); //__NSMallocBlock__
+    
+    blk globalPointerBlock = ^{NSLog(@"val");};
+    NSLog(@"globalBlock: %@", globalPointerBlock); //__NSGlobalBlock__
+
+    __weak blk weakPointerBlock = ^{NSLog(@"val = %d", ++val);};
+    NSLog(@"weakPointerBlock: %@", weakPointerBlock); //__NSStackBlock__
+
+    NSLog(@"mallocBlock: %@", [weakPointerBlock copy]); //__NSMallocBlock__
+
+    NSLog(@"test %@", ^{NSLog(@"val = %d", ++val);}); //__NSStackBlock__
+```
+
+## 参考文献
+
+《Objective-C 高级编程》
+
+[谈Objective-C block的实现](http://blog.devtang.com/2013/07/28/a-look-inside-blocks/)
